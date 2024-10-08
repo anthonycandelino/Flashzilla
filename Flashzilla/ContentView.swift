@@ -43,8 +43,9 @@ struct ContentView: View {
                     .clipShape(.capsule)
                 
                 ZStack {
-                    ForEach(0..<cards.count, id: \.self) { index in
-                        CardView(card: cards[index], index: index, removeCard: removeCard)
+                    ForEach(cards) { card in
+                        let index = cards.firstIndex(of: card) ?? 0
+                        CardView(card: card, removeCard: removeCard)
                             .stacked(at: index, in: cards.count)
                             .allowsHitTesting(index == cards.count - 1)
                             .accessibilityHidden(index < cards.count - 1)
@@ -88,7 +89,8 @@ struct ContentView: View {
                     HStack {
                         Button {
                             withAnimation {
-                                removeCard(at: cards.count - 1, isCorrect: false)
+                                let card = cards[cards.count - 1]
+                                removeCard(with: card.id, isCorrect: false)
                             }
                         } label: {
                             Image(systemName: "xmark.circle")
@@ -103,7 +105,8 @@ struct ContentView: View {
                         
                         Button {
                             withAnimation {
-                                removeCard(at: cards.count - 1, isCorrect: true)
+                                let card = cards[cards.count - 1]
+                                removeCard(with: card.id, isCorrect: true)
                             }
                         } label: {
                             Image(systemName: "checkmark.circle")
@@ -140,22 +143,24 @@ struct ContentView: View {
         .onAppear(perform: resetCards)
     }
     
-    func removeCard(at index: Int, isCorrect: Bool) {
-        guard index >= 0 else { return }
-        let card = cards[index]
-        
-        DispatchQueue.main.async {
-            cards.remove(at: index)
-        }
-        
-        if !isCorrect {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                cards.insert(card, at: 0)
+    func removeCard(with id: UUID, isCorrect: Bool) {
+        if let cardIndex = cards.firstIndex(where: { $0.id == id }) {
+            var oldCard: Card?
+            
+            DispatchQueue.main.async {
+                oldCard = cards.remove(at: cardIndex)
             }
-        }
-        
-        if cards.isEmpty {
-            isActive = false
+            
+            if !isCorrect {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    let newCard = Card(prompt: oldCard?.prompt ?? "", answer: oldCard?.answer ?? "")
+                    cards.insert(newCard, at: 0)
+                }
+            }
+            
+            DispatchQueue.main.async {
+                if cards.isEmpty { isActive = false }
+            }
         }
     }
     
