@@ -15,7 +15,8 @@ struct CardView: View {
     @State private var offset = CGSize.zero
     
     let card: Card
-    var removal: (() -> Void)? = nil
+    let index: Int
+    var removeCard: (Int, Bool) -> Void
     
     var body: some View {
         ZStack {
@@ -65,8 +66,11 @@ struct CardView: View {
                     offset = gesture.translation
                 }
                 .onEnded { _ in
-                    if abs(offset.width) > 100 {
-                        removal?()
+                    if offset.width < -100 {
+                        removeCard(index, false)
+                    }
+                    if offset.width > 100 {
+                        removeCard(index, true)
                     } else {
                         offset = .zero
                     }
@@ -87,5 +91,6 @@ struct CardView: View {
 }
 
 #Preview {
-    CardView(card: .example)
+    let mockRemoveCard: (Int, Bool) -> Void = { _, _ in}
+    CardView(card: .example, index: .init(0), removeCard: mockRemoveCard)
 }
